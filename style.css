@@ -1340,7 +1340,7 @@ th:last-child {
   left: 50%;
   max-width: 350px;
   max-height: 90vh;
-  padding: 10px 25px;
+  padding: 50px 30px;
   border-radius: 6px;
   background-color: white;
   transform: translate(-50%, -50%) scale(1.2);
