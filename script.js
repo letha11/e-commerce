@@ -15,6 +15,40 @@ class Product {
   }
 }
 
+/**
+ * Creating product HTML element
+ * @param {Product} product
+ * @param {HTMLElement} element
+ */
+function generateProductElement(product, element) {
+  const productDiv = document.createElement("div");
+  productDiv.className = "pro";
+  productDiv.innerHTML = `
+     <img src="${product.imagePath}" alt="">
+     <div class="des">
+         <span>${product.category}</span>
+         <h5>${product.name}</h5>
+         <div class="star">
+             <i class="fas fa-star"></i>
+             <i class="fas fa-star"></i>
+             <i class="fas fa-star"></i>
+             <i class="fas fa-star"></i>
+             <i class="fas fa-star"></i>
+         </div>
+         <h4>${numberFormat.format(product.price)}</h4>
+     </div>
+     <a href="#" ><i class="fa-sharp fa-solid fa-cart-shopping"></i></a>
+`;
+
+  productDiv.querySelector("a").addEventListener("click", (e) => {
+    e.preventDefault();
+    cart.addProduct(product);
+    console.log("add to cart");
+  });
+
+  element.appendChild(productDiv);
+}
+
 // Dynamic product example
 const products = [
   new Product("Baju lebih adem", 10000, "Adidas", "img/products/f1.jpg"),
@@ -41,8 +75,8 @@ class CartLocalStorage {
             new Product(
               item.product.name,
               item.product.price,
-              item.product.quantity,
-              item.product.image
+              item.product.category,
+              item.product.imagePath
             )
           )
       );
@@ -104,11 +138,11 @@ class Cart {
     /**
      * @type {CartItem[]}
      */
-    // this.cartItems = this.cartLocalStorage.get();
-    this.cartItems = [
-      new CartItem(1, 5, products[0]),
-      new CartItem(2, 1, products[1]),
-    ];
+    this.cartItems = this.cartLocalStorage.get();
+    // this.cartItems = [
+    //   new CartItem(1, 5, products[0]),
+    //   new CartItem(2, 1, products[1]),
+    // ];
   }
 
   /**
@@ -148,7 +182,7 @@ class Cart {
 
     this.notifyAdded();
 
-    // this.cartLocalStorage.store(this.cartItems);
+    this.cartLocalStorage.store(this.cartItems);
   }
 
   /**
@@ -172,11 +206,10 @@ class Cart {
 
     if (indexToRemove !== -1) {
       this.cartItems.splice(indexToRemove, 1);
+      this.cartLocalStorage.store(this.cartItems);
       this.generateCartItem();
       // TODO: REMOVE FROM LOCALSTORAGE
     }
-
-    console.log(this.cartItems);
   }
 
   /**
@@ -215,7 +248,7 @@ class Cart {
          </div>
        </div>
     `;
-        quantityProduct.innerHTML = `<input type="number" value="${item.amount}" min="1" />`;
+        quantityProduct.innerHTML = `<input type="number" value="${item.amount}" min="1" max="99"/>`;
         price.innerHTML = formattedTotalPrice;
 
         productDetail.querySelector("a").addEventListener("click", () => {
@@ -227,15 +260,23 @@ class Cart {
           .addEventListener("change", (e) => {
             let val = e.currentTarget.value;
 
-            if (parseInt(val) <= 0) {
+            if (parseInt(val) <= 0 || val === "") {
               e.currentTarget.value = 1;
               val = 1;
             }
 
+            if (parseInt(val) > 99) {
+              e.currentTarget.value = 99;
+              val = 99;
+            }
+
             item.changeAmount(val);
+            this.cartLocalStorage.store(this.cartItems);
+
             totalPriceProduct = item.product.price * item.amount;
             formattedTotalPrice = numberFormat.format(totalPriceProduct);
             price.innerHTML = formattedTotalPrice;
+
             this.calculateAndShowTotalPrice();
           });
 
@@ -363,38 +404,49 @@ function homePage() {
   console.log("home page loaded");
   const firstProductContainer = document.querySelector(".pro-container");
 
-  products.forEach((p) => {
-    const productDiv = document.createElement("div");
-    productDiv.className = "pro";
-    productDiv.innerHTML = `
-     <img src="${p.imagePath}" alt="">
-     <div class="des">
-         <span>${p.category}</span>
-         <h5>${p.name}</h5>
-         <div class="star">
-             <i class="fas fa-star"></i>
-             <i class="fas fa-star"></i>
-             <i class="fas fa-star"></i>
-             <i class="fas fa-star"></i>
-             <i class="fas fa-star"></i>
-         </div>
-         <h4>${numberFormat.format(p.price)}</h4>
-     </div>
-     <a href="#" ><i class="fa-sharp fa-solid fa-cart-shopping"></i></a>
-`;
-
-    productDiv.querySelector("a").addEventListener("click", (e) => {
-      e.preventDefault();
-      cart.addProduct(p);
-      console.log("add to cart");
-    });
-
-    firstProductContainer.appendChild(productDiv);
-  });
+  products.forEach((p) => generateProductElement(p, firstProductContainer));
 }
 
 function shopPage() {
   console.log("shop page loaded");
+  /**
+   *
+   * @param {string} query
+   */
+  function search(query) {
+    productContainer.innerHTML = "";
+
+    toggleLoadingIndicator();
+
+    const noResultElement = document.querySelector(".no-result");
+    noResultElement.classList.remove("show"); // hide no result element
+
+    const filteredProducts = products.filter((e) =>
+      e.name.toLowerCase().includes(query)
+    );
+
+    setTimeout(() => {
+      if (filteredProducts.length !== 0) {
+        filteredProducts.forEach((product) => {
+          generateProductElement(product, productContainer);
+        });
+      } else {
+        noResultElement.classList.add("show"); // show no result element
+      }
+
+      toggleLoadingIndicator();
+    }, delayPage);
+  }
+
+  const productContainer = document.querySelector(".pro-container");
+  products.forEach((p) => generateProductElement(p, productContainer));
+
+  const searchButton = document.querySelector(".search-btn");
+  searchButton.addEventListener("click", (e) => {
+    e.preventDefault();
+    const searchInput = document.querySelector("[type='text']#query");
+    search(searchInput.value.toLowerCase());
+  });
 }
 
 function cartPage() {
