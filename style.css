@@ -1,4 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Spartan:wght@100;200;300;400;500;600;700;800;900&display=swap");
+
+:root {
+  --delay-animation: 200ms;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -1325,4 +1330,44 @@ th:last-child {
   100% {
     transform: rotate(360deg);
   }
+}
+
+.popup-container {
+  position: fixed;
+  visibility: hidden;
+  opacity: 0;
+  top: 50%;
+  left: 50%;
+  max-width: 350px;
+  max-height: 90vh;
+  padding: 10px 25px;
+  border-radius: 6px;
+  background-color: white;
+  transform: translate(-50%, -50%) scale(1.2);
+  text-align: center;
+  transition: var(--delay-animation);
+  overflow: auto;
+}
+.popup-container.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -50%);
+  transition: var(--delay-animation);
+}
+.overlay {
+  visibility: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* z-index: 2; */
+  opacity: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  transition: var(--delay-animation);
+}
+.overlay.active {
+  visibility: visible;
+  opacity: 1;
+  transition: var(--delay-animation);
 }
