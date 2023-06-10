@@ -2,7 +2,11 @@ const bar = document.getElementById("bar");
 const close = document.getElementById("close");
 const nav = document.getElementById("navbar");
 const root = document.querySelector(".root-container");
-
+const numberFormat = new Intl.NumberFormat("id-ID", {
+  style: "currency",
+  currency: "IDR",
+  minimumFractionDigits: 0,
+});
 const delayPage = 300; // millisecond
 
 const navLinks = nav.querySelectorAll("li a");
@@ -27,9 +31,9 @@ navLinks.forEach((e) => {
     let path = el.currentTarget.getAttribute("href");
 
     // prevent the same route from being pushed
-    if (`/${path.split("/").at(-1)}` === window.location.pathname) {
-      return; // do nothing
-    }
+    // if (`/${path.split("/").at(-1)}` === window.location.pathname) {
+    //   return; // do nothing
+    // }
 
     handleLocation(path);
   });
@@ -38,7 +42,7 @@ navLinks.forEach((e) => {
 function toggleLoadingIndicator() {
   const loadingIndicatorElement = document.querySelector(".loading-indicator");
   const loadingIndicatorContainer = document.querySelector(
-    ".loading-indicator-container",
+    ".loading-indicator-container"
   );
 
   loadingIndicatorElement.classList.toggle("active");
@@ -141,9 +145,9 @@ function cartPage() {
                 item.product.name,
                 item.product.price,
                 item.product.quantity,
-                item.product.image,
-              ),
-            ),
+                item.product.image
+              )
+            )
         );
       }
 
@@ -187,7 +191,7 @@ function cartPage() {
     /**
      * @method
      */
-    changeAmount = (amount) => this.amount = amount;
+    changeAmount = (amount) => (this.amount = amount);
   }
 
   class Cart {
@@ -227,13 +231,13 @@ function cartPage() {
      */
     addProduct(product, shouldNotify, amountElement) {
       const existingProduct = this.cartItems.findIndex(
-        (item) => item.product.name === product.name,
+        (item) => item.product.name === product.name
       );
 
       if (existingProduct === -1) {
         const lastIndex = this.cartItems.length - 1;
         this.cartItems.push(
-          new CartItem((this.cartItems[lastIndex]?.id ?? 0) + 1, 1, product),
+          new CartItem((this.cartItems[lastIndex]?.id ?? 0) + 1, 1, product)
         );
       } else {
         this.cartItems[existingProduct].addAmount();
@@ -267,21 +271,17 @@ function cartPage() {
      * @param {number} id - id that will get removed/deleted
      * @param {HTMLElement} amountElement - element that show the current amount
      */
-    removeProductById(id, amountElement) {
+    removeProductById(id) {
       const indexToRemove = this.cartItems.findIndex((item) => item.id === id);
-      let currentAmount = this.cartItems[indexToRemove].amount;
+      // let currentAmount = this.cartItems[indexToRemove].amount;
 
-      if (currentAmount === 1) {
+      if (indexToRemove !== -1) {
         this.cartItems.splice(indexToRemove, 1);
-        this.generateCartItem(); // re-render
-      } else {
-        this.cartItems[indexToRemove].decreaseAmount();
-        amountElement.innerText = this.cartItems[indexToRemove].amount;
+        this.generateCartItem();
+        // TODO: REMOVE FROM LOCALSTORAGE
       }
 
-      this.calculateAndShowTotalPrice(); // calculate the totalPrice and showing it
-      cartCount.innerText = this.cartItems.length; //update cart counter
-      this.cartLocalStorage.store(this.cartItems);
+      console.log(this.cartItems);
     }
 
     /**
@@ -290,64 +290,79 @@ function cartPage() {
      * @returns {HTMLElement}
      */
     generateCartItem() {
-      const cartItemsContainer = document.querySelector("table");
+      const cartItemsContainer = document.querySelector(".cart-items");
+      const cartEmptyElement = document.querySelector(".cart-empty");
+      cartItemsContainer.innerHTML = "";
 
-      this.cartItems.forEach((item) => {
-        const newItem = document.createElement("tr");
-        const productDetail = document.createElement("td");
-        const quantityProduct = document.createElement("td");
-        const price = document.createElement("td");
-        let totalPrice = item.product.price * item.amount;
+      if (this.cartItems.length === 0) {
+        const cartTableContainer = document.querySelector(".cart-table");
+        cartTableContainer.classList.toggle("hidden");
+        cartEmptyElement.classList.add("shown");
+      } else {
+        cartEmptyElement.classList.remove("shown");
 
-        productDetail.innerHTML = `
+        this.cartItems.forEach((item) => {
+          const newItem = document.createElement("tr");
+          const productDetail = document.createElement("td");
+          const quantityProduct = document.createElement("td");
+          const price = document.createElement("td");
+          let totalPriceProduct = item.product.price * item.amount;
+          let formattedTotalPrice = numberFormat.format(totalPriceProduct);
+
+          productDetail.innerHTML = `
          <div class="cart-info">
            <img src="${item.product.imagePath}"/>
            <div>
              <p>${item.product.name}</p>
-             <small>Price: ${item.product.price}</small>
+             <small>Harga: ${numberFormat.format(item.product.price)}</small>
              <br />
              <a href="#">Remove</a>
            </div>
          </div>
       `;
-        quantityProduct.innerHTML =
-          `<input type="number" value="${item.amount}" min="1" />`;
-        price.innerHTML = `Rp. ${totalPrice}`;
+          quantityProduct.innerHTML = `<input type="number" value="${item.amount}" min="1" />`;
+          price.innerHTML = formattedTotalPrice;
 
-        quantityProduct.querySelector("input").addEventListener(
-          "change",
-          (e) => {
-            let val = e.currentTarget.value;
-            
-            if (parseInt(val) <= 0) {
-              // TODO: should remove the item when it reached 0 or below
-              e.currentTarget.value = 1;
-              val = 1;
-            }
+          productDetail.querySelector("a").addEventListener("click", () => {
+            this.removeProductById(item.id);
+          });
 
-            item.changeAmount(val);
-            totalPrice = item.product.price * item.amount;
-            price.innerHTML = `Rp. ${totalPrice}`;
-          },
-        );
+          quantityProduct
+            .querySelector("input")
+            .addEventListener("change", (e) => {
+              let val = e.currentTarget.value;
 
-        newItem.appendChild(productDetail);
-        newItem.appendChild(quantityProduct);
-        newItem.appendChild(price);
+              if (parseInt(val) <= 0) {
+                e.currentTarget.value = 1;
+                val = 1;
+              }
 
-        cartItemsContainer.append(newItem);
-      });
+              item.changeAmount(val);
+              totalPriceProduct = item.product.price * item.amount;
+              formattedTotalPrice = numberFormat.format(totalPriceProduct);
+              price.innerHTML = formattedTotalPrice;
+              this.calculateAndShowTotalPrice();
+            });
+
+          newItem.appendChild(productDetail);
+          newItem.appendChild(quantityProduct);
+          newItem.appendChild(price);
+
+          cartItemsContainer.append(newItem);
+        });
+        this.calculateAndShowTotalPrice();
+      }
     }
 
     calculateAndShowTotalPrice() {
       this.totalPrice = this.cartItems.reduce(
         (acc, item) => acc + item.product.price * item.amount,
-        0,
+        0
       );
 
-      document.querySelector(
-        ".price",
-      ).innerText = `Total Price: ${this.totalPrice}`;
+      let formattedTotalPrice = numberFormat.format(this.totalPrice);
+      document.querySelector(".total-price td:last-child").innerText =
+        formattedTotalPrice;
     }
   }
 
@@ -355,22 +370,6 @@ function cartPage() {
   const cart = new Cart(cartDB);
 
   cart.generateCartItem();
-
-  //   <tr>
-  //   <td>
-  //     <div class="cart-info">
-  //       <img src="img/products/f1.jpg" alt="Tshirt" />
-  //       <div>
-  //         <p>Orange Printed Tshirt</p>
-  //         <small>Price: $78.00</small>
-  //         <br />
-  //         <a href="#">Remove</a>
-  //       </div>
-  //     </div>
-  //   </td>
-  //   <td><input type="number" value="1" /></td>
-  //   <td>$78.00</td>
-  // </tr>
 }
 
 function aboutPage() {
@@ -399,24 +398,9 @@ class Product {
 
 // Dynamic product example
 const products = [
-  new Product(
-    "Baju lebih adem",
-    10000,
-    "Adidas",
-    "img/products/f1.jpg",
-  ),
-  new Product(
-    "Baju Pantai Adem",
-    20000,
-    "Tropical",
-    "img/products/f2.jpg",
-  ),
-  new Product(
-    "Jaket wibu",
-    55000,
-    "Hehe",
-    "img/products/f3.jpg",
-  ),
+  new Product("Baju lebih adem", 10000, "Adidas", "img/products/f1.jpg"),
+  new Product("Baju Pantai Adem", 20000, "Tropical", "img/products/f2.jpg"),
+  new Product("Jaket wibu", 55000, "Hehe", "img/products/f3.jpg"),
 ];
 
 if (bar) {
